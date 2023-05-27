@@ -1,3 +1,4 @@
+// 'use client'
 import Image from 'next/image'
 import { OpenAI } from 'langchain/llms/openai'
 import { PromptTemplate } from 'langchain/prompts'
@@ -9,6 +10,15 @@ import { BufferMemory } from 'langchain/memory'
 import { ConversationChain } from 'langchain/chains'
 
 import { ChromaClient, OpenAIEmbeddingFunction } from 'chromadb'
+
+// prompt building
+// import { useEffect, useState } from 'react'
+
+import {
+  SystemChatMessage,
+  HumanChatMessage,
+  AIChatMessage,
+} from 'langchain/schema'
 
 const client = new ChromaClient()
 
@@ -28,13 +38,6 @@ export default async function Home() {
     documents: ['This is a document', 'This is another document'],
   })
 
-  const results = await collection.query({
-    n_results: 2,
-    query_text: ['This is a query document'],
-  })
-
-  console.log('results: ', results)
-
   // Streaming
   const chat = new OpenAI({
     streaming: true,
@@ -46,11 +49,64 @@ export default async function Home() {
       },
     ],
   })
+  const song = await chat.call(
+    'Write me an eminem song about vector databases.'
+  )
 
-  await chat.call('Write me an eminem song about vector databases.')
+  let myself = 'I am a 40 years old man making $400000 / year'
+
+  const myPrompt = await chat.call(
+    `Give me 10 ways that people owning an LLC in the usa can save money on taxes. ${myself}`
+  )
+
+  await collection.add({
+    ids: ['id3', 'id4'],
+    metadatas: [{ source: 'my_source' }, { source: 'my_source' }],
+    documents: [`${song}`, `${myPrompt}`],
+  })
+
+  const results = await collection.query({
+    n_results: 4,
+    query_text: ['Vector databases', 'taxes'],
+  })
+  console.log('results: ', results)
+
+  // PROMPT BUILDING
+  // let country = 'France'
+  // const queryTemplate = new PromptTemplate({
+  //   template: (input: string) => `What is the capital of ${country}?`,
+  //   inputVariables: ['country'],
+  // })
+
+  // const documents = await collection.query({
+  //   n_results: 2,
+  //   query_text: ['This is a query document'],
+  // })
+
+  // const [messages, setMessages] = useState([])
+  const systemMessage = new SystemChatMessage('Your instruction here')
+  const humanMessage = new HumanChatMessage('Your message here')
+  const aiMessage = new AIChatMessage('Your message here')
+  // Simulate a chat conversation when the component mounts
+  // useEffect(() => {
+  //   const systemMessage = new SystemChatMessage('Your instruction here')
+  //   const humanMessage = new HumanChatMessage('Your message here')
+  //   const aiMessage = new AIChatMessage('Your message here')
+
+  //   setMessages([systemMessage, humanMessage, aiMessage])
+  // }, [])
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       main page
+      <div>
+        <h1>EmVector</h1>
+        <div>{song}</div>
+      </div>
+      <div>
+        <h1>TaxAdvice</h1>
+        <div>{myPrompt}</div>
+      </div>
     </main>
   )
 }
